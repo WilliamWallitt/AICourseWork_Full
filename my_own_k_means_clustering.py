@@ -2,10 +2,13 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn import datasets
+import time
 
+# k-means handwritten digits data_set
 load_digits = datasets.load_digits()
 
 
+# function that takes in the dataset and splits it into a training and validation set
 def get_training_and_validation_sets(digits):
     # get list of [label, matrix]
     images_and_labels = list(zip(digits.target, digits.images))
@@ -18,9 +21,11 @@ def get_training_and_validation_sets(digits):
     return training_set, validation_set
 
 
+# storing the training and validation sets in two variables to use
 training, validation = get_training_and_validation_sets(load_digits)
 
 
+# randomly select k amount of centroid's (starting points) and return then in an array
 def starting_centroids(data, cluster_amount):
     starting = []
 
@@ -31,6 +36,7 @@ def starting_centroids(data, cluster_amount):
     return starting
 
 
+# for a cluster (list of data-points) return the mean of the matrix (image) of all the data-poitns
 def mean_of_cluster(cluster):
     init_sum = cluster[0][1].copy()
 
@@ -42,6 +48,7 @@ def mean_of_cluster(cluster):
     return mean_of_points
 
 
+# for all clusters calculate the mean and return the new cluster centers for each cluster
 def move_centroids_centers(clusters):
     new_centers = []
 
@@ -51,7 +58,9 @@ def move_centroids_centers(clusters):
     return new_centers
 
 
+# function that goes through all the data-points and assigns them to the nearest cluster
 def k_means_algorithm(data, centroids):
+
     len_centriods = range(len(centroids))
 
     clusters = [[] for c in len_centriods]
@@ -74,6 +83,7 @@ def k_means_algorithm(data, centroids):
     return clusters
 
 
+# return list of the total difference for the current the previous centroid positions
 def difference_prev_current_centroids(prev_centroid, current_centroid):
     list_prev = []
     list_current = []
@@ -89,20 +99,23 @@ def difference_prev_current_centroids(prev_centroid, current_centroid):
     return sum(list_diff)
 
 
+# using the k_means_algorithm iterate until the centroid centers no longer move
 def k_means_iterator(data, clusters, centroids):
+
     while True:
 
         old_centroids = centroids
         centroids = move_centroids_centers(clusters)
         clusters = k_means_algorithm(data, centroids)
         difference = difference_prev_current_centroids(old_centroids, centroids)
-
+        # once difference is 0, return the clusters and centroids
         if difference == 0.0:
             break
 
     return clusters, centroids
 
 
+# function that uses the k_means_iterator and returns the final clusters and centroids
 def k_means_start(data, cluster_amount):
     centroids = starting_centroids(data, cluster_amount)
     clusters = k_means_algorithm(training, centroids)
@@ -111,12 +124,14 @@ def k_means_start(data, cluster_amount):
     return end_clusters, end_centroids
 
 
+# function that returns the label for a given data-point's matrix
 def look_up_label(data_set, matrix):
     for item in data_set:
         if item[1] == matrix:
             return item[0]
 
 
+# function that returns the most frequent label (digit) in the data_set
 def most_frequent(list):
     counter = 0
     num = list[0]
@@ -130,6 +145,7 @@ def most_frequent(list):
     return num
 
 
+# function that adds the most frequent digit (label) to each centroida
 def add_labels_to_centroids(clusters):
     centroid_labels = [[] for x in range(len(clusters))]
 
@@ -145,7 +161,7 @@ def add_labels_to_centroids(clusters):
     return centroid_labels
 
 
-# goes through list of centroids and list of labels, and prints each centroids matrix
+# goes through list of centroids and list of labels, and displays each centroid
 def print_centroids(centroids, labels):
     # resize the image to an 8 by 8 pixel image
     fig = plt.figure(figsize=(8, 8))
@@ -166,14 +182,18 @@ def print_centroids(centroids, labels):
     plt.show()
 
 
-def main(data_set, num_clusters):
+# function that is called to run the entire k_means algorithm
+def main(num_clusters):
+
+    timer = time.process_time()
 
     # get final clusters and centroids
-    test_clust, test_cent = k_means_start(data_set, num_clusters)
+    test_cluster, test_centroid = k_means_start(training, num_clusters)
     # add labels to each centroid
-    centroid_labels = add_labels_to_centroids(test_clust)
+    centroid_labels = add_labels_to_centroids(test_cluster)
     # print centroids (with the respective labels)
-    print_centroids(test_cent, centroid_labels)
+    print("Time taken: " + str(round((time.process_time() - timer), 2)))
+    print_centroids(test_centroid, centroid_labels)
 
 
-main(training, 10)
+main(10)

@@ -3,7 +3,8 @@ import copy
 import time
 import numpy as np
 
-# Heuristics - Manhatten and Euclidean
+
+# Heuristics - Manhattan and Euclidean
 def calcuateManhattenHeuristics(state1, state2, grid_size):
 
     m = 0
@@ -41,7 +42,7 @@ def calculateEucledianDistanceHeuristic(state1, state2, grid_size):
             if current_val == 0:
                 continue
 
-            goal_coords = findTilePosition(state2, current_val)
+            goal_coords = findTilePosition(state2, current_val, grid_size)
 
             rowdiff = (row - goal_coords[0]) ** 2
             coldiff = (col - goal_coords[1]) ** 2
@@ -148,13 +149,14 @@ class State:
             initial.h = calculateEucledianDistanceHeuristic(initial.state, goal.state, grid_size)
 
         initial.f = initial.h + initial.g
+        # the starting node, has no initial parent or action (up/down/left/right)
         initial.parent = None
         initial.action = None
 
         open.append(initial)
 
         # check if initial state is solvable before we run the main search code
-        if not isSolvable(initial.state):
+        if not isSolvable(initial.state, grid_size):
 
             printMatrix(initial.state)
             print("No Solution Found for this configuration")
@@ -163,12 +165,15 @@ class State:
 
         while open:
 
+            # get current node to search from open list
             current_node = open.pop(0)
-
+            # get all the possible moves that node can make
             possibleNeighbors = generatePossibleMoves(current_node.state, grid_size)
+            # add node to closed (already searched list)
             closed.append(current_node)
             expanded_nodes_count += 1
 
+            # iterate over the possible moves
             for neighbor in possibleNeighbors:
 
                 child_node = State()
@@ -206,6 +211,8 @@ class State:
                     found = False
                     k = 0
 
+                    # go through open list and if the node is in that list
+                    # update the f value if the node's f value is less than the current f value
                     for item in open:
                         if item.state == child_node.state:
                             found = True
@@ -218,6 +225,7 @@ class State:
                     if not found:
                         open.append(child_node)
 
+                # sort the open list by the f value (low to high)
                 open = sorted(open, key=lambda x: x.f)
 
         print("No Solution Found!")
@@ -234,7 +242,7 @@ def isInExpanded(expanded, child_node):
 
 
 # true means solvable false means not solvable
-def isSolvable(state):
+def isSolvable(state, grid_size):
 
     inv_count = 0
     state_list = []
@@ -254,8 +262,12 @@ def isSolvable(state):
             if state_list.index(item) > state_list.index(tile) and item < tile and item != 0:
 
                 inv_count += 1
-
-    return inv_count % 2 == 0
+    if grid_size == 4:
+        return inv_count % 2 != 0
+    elif grid_size == 3:
+        return inv_count % 2 == 0
+    else:
+        return True
 
 
 # this backtracks up the nodes parents, and prints out each move (in reverse)
@@ -281,14 +293,19 @@ def branchingFactor(nodes, depth):
     return nodes ** (1/depth)
 
 
+# function that takes in the node that is the same as the goals state
+# printing out the moves it takes to get there and the puzzle grid's state for that move
+# also printing out the total nodes generated and nodes that have been expanded
 def printResults(state, expanded_nodes, generated_nodes, grid_size):
+
     print("Generated Nodes Count:", generated_nodes)
     print("Expanded Nodes Count:", expanded_nodes)
     print("Node count:", state.g)
     print("Branching Factor:", round(branchingFactor(generated_nodes, state.g), 2))
-    # print(h.heap())
     print("---------------------")
     pathToGoal(state)
+
+    # the user can then after the results are shown, run the program again
     print(" -----------------------------------------")
     print("| Please enter 1 to run the program again |")
     print("| Please enter 2 to quit                  |")
@@ -305,7 +322,7 @@ def printResults(state, expanded_nodes, generated_nodes, grid_size):
         return
 
     if int(userinput) == 1:
-        startPuzzleSolver(grid_size)
+        main()
         return
     elif int(userinput) == 2:
         return
@@ -319,11 +336,13 @@ def printMatrix(state):
         print(str(s).strip('[]').replace(",", ''))
 
 
-# the function starts the game
+# the function starts the A* algorithm given the user inputted puzzle / test puzzle
 def startPuzzleSolver(grid_size):
 
+    # returns either the test/user specified puzzle (goal/starting state)
     start_state_list, goal_state_list = startSolver(grid_size)
 
+    # if either of the lists are empty - exit the program
     if len(start_state_list) == 0 or len(goal_state_list) == 0:
 
         return
@@ -336,19 +355,28 @@ def startPuzzleSolver(grid_size):
     intial_state = State(start_state_list)
     goal_state = State(goal_state_list)
 
+    # user is now choosing the heuristic to use
     print(" ----------------------------------------------------")
     print("| Please enter 1 to use Manhattan Distance heuristic |")
     print("| Please enter 2 to use Euclidean Distance heuristic |")
     print("| Please enter 3 to quit                             |")
     print(" ----------------------------------------------------")
 
-    userInput = input("-> ")
+    try:
+        userInput = input("-> ")
+        userInput = int(userInput)
 
-    if int(userInput) == 3:
+    except ValueError:
+
+        print("Error please enter a valid number!")
+        startPuzzleSolver(grid_size)
+        return
+
+    if userInput == 3:
 
         return
 
-    if int(userInput) < 1 or int(userInput) > 2:
+    if userInput < 1 or userInput > 2:
         print("----------------------")
         print("Error: Please enter a valid number")
         print("----------------------")
@@ -357,13 +385,12 @@ def startPuzzleSolver(grid_size):
 
         return
 
+    # where 1 is the Manhattan heuristic and 2 is the Euclidean heuristic
     intial_state.solveProblem(intial_state, goal_state, int(userInput), grid_size)
 
 
+# function that returns user inputted start/end state or test start/end state
 def startSolver(grid_size):
-
-    start_state = []
-    end_state = []
 
     print(" ------------------------------")
     print("Welcome to my 8-Puzzle Solver!")
@@ -413,8 +440,7 @@ def startSolver(grid_size):
 
             startPuzzleSolver(grid_size)
 
-        # start = [int(num) for num in start]
-        # end = [int(num) for num in end]
+            return [], []
 
         start = np.reshape(start, (grid_size, grid_size)).tolist()
         end = np.reshape(end, (grid_size, grid_size)).tolist()
@@ -436,15 +462,28 @@ def startSolver(grid_size):
 
             return
 
+    # if the user wants to use the test puzzle (only for 8-15 puzzle's)
     elif int(userinput) == 2:
 
         if grid_size == 4:
 
             start_state = [[1, 2, 4, 0], [5, 7, 3, 8], [9, 6, 10, 12], [13, 14, 11, 15]]
             end_state = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12], [13, 14, 15, 0]]
-        else:
+
+        elif grid_size == 3:
+
             start_state = [[7, 2, 4], [5, 0, 6], [8, 3, 1]]
             end_state = [[0, 1, 2], [3, 4, 5], [6, 7, 8]]
+
+        else:
+
+            print(" ----------------------------------")
+            print("There are only test puzzles for 8 and 15 puzzles !")
+            print(" ----------------------------------")
+
+            startPuzzleSolver(grid_size)
+
+            return [], []
 
         return start_state, end_state
 
@@ -456,9 +495,10 @@ def startSolver(grid_size):
 
         startPuzzleSolver(grid_size)
 
-        return
+        return [], []
 
 
+# function to check that the user entered matrix is correct (contains all the tile numbers)
 def checkUserMatrixIsValid(start_matrix, end_matrix, grid_size):
 
     num = [x for x in range((grid_size ** 2))]
@@ -482,10 +522,22 @@ def checkUserMatrixIsValid(start_matrix, end_matrix, grid_size):
         return False
 
 
+# function to start the program and asks for user input for the grid size to be used
 def main():
 
     print("Please enter your N-puzzle grid size (number of tiles per row!)")
-    grid_size = input("->")
-    startPuzzleSolver(int(grid_size))
+    try:
+        grid_size = input("->")
+        if int(grid_size) < 2:
+            print("Error: Please choose an N value greater than 1")
+            main()
+            return
+        else:
+            startPuzzleSolver(int(grid_size))
+    except ValueError:
+        print("Error: Please enter a valid N value")
+        main()
+        return
+
 
 main()

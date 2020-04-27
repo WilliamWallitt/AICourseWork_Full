@@ -2,16 +2,22 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 import sklearn as sk
+from matplotlib import cm
 from sklearn import datasets
 from sklearn.cluster import KMeans
 from scipy.stats import mode
+from sklearn.decomposition import PCA
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from sklearn.preprocessing import scale
+
 
 digits = datasets.load_digits()
 
 
-def getPredictedValues(num_clusters):
+# function that takes in the number of clusters
+# returns a list of digits that the k_means algorithm things belong to that cluster
+def get_predicted_values(num_clusters):
 
     digits = datasets.load_digits()
     labels = digits.target
@@ -30,7 +36,7 @@ def getPredictedValues(num_clusters):
             if cluster_groups[j] == i:  # compare value to group number
                 indices.append(j)
 
-        digits = []  # 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4
+        digits = []
         # we then get the actual values from this list of index's
         for index in indices:  # 5, 84, 192, 1045
             digits.append(labels[index])
@@ -41,7 +47,6 @@ def getPredictedValues(num_clusters):
         mapping.append(average_digit)
 
     predicted_labels = []
-    # 4, 1, 5, 3, 1, 5, 9, 8, etc...
     # we then go through the list of cluster_groups and add their digit values to the predicted_labels list
     for cluster_group in cluster_groups:
         predicted_labels.append(mapping[cluster_group])
@@ -49,15 +54,15 @@ def getPredictedValues(num_clusters):
     return predicted_labels
 
 
-def accuracyOfClusters(n_clusters, print_matrix=False):
+def accuracy_of_clusters(n_clusters, print_matrix=False):
 
     # list of samples -> inside that list, cluster that it has been assigned to
 
     k_means = KMeans(n_clusters=n_clusters, random_state=0)
 
-    clusters = k_means.fit_predict(digits.data)
+    k_means.fit_predict(digits.data)
 
-    labels = getPredictedValues(n_clusters)
+    labels = get_predicted_values(n_clusters)
 
     if print_matrix:
 
@@ -84,7 +89,7 @@ def k_means_inertia(n_clusters_min, n_clusters_max):
     for cluster in range(n_clusters_min, n_clusters_max):
 
         k_means = KMeans(n_clusters=cluster, random_state=0)
-        clusters = k_means.fit(digits.data)
+        k_means.fit(digits.data)
 
         k_means_interia_values.append(round(k_means.inertia_, 2) / 1000)
         k_means_cluster_amount.append(cluster)
@@ -145,7 +150,7 @@ def show_cluster_accuracy_diagram(range_min, range_max, step):
     x = []
     y = []
     for i in range(range_min, range_max, step):
-        x.append(accuracyOfClusters(i))
+        x.append(accuracy_of_clusters(i))
         y.append(i)
 
     plt.title("Accuracy of K-means Algorithm depending on Cluster amount")
@@ -155,25 +160,51 @@ def show_cluster_accuracy_diagram(range_min, range_max, step):
     plt.show()
 
 
+# function that prints the scatter diagram of K clusters
 def cluster_scatter_diagram(n_clusters):
 
     k_means = KMeans(n_clusters=n_clusters, random_state=0)
-    X, y_true = sk.datasets.make_blobs(n_samples=digits.data.shape[0], centers=10, cluster_std=1, random_state=0)
-    k_means.fit(X)
-    y_kmeans = k_means.predict(X)
-    plt.title("Scatter diagram of each cluster (digit)")
-    plt.scatter(X[:, 0], X[:, 1], c=y_kmeans, s=2, cmap='viridis')
-    c = k_means.cluster_centers_
-    plt.scatter(c[:, 0], c[:, 1], c='black', s=20, alpha=0.7)
+    reduced_data = PCA(n_components=2).fit_transform(scale(digits.data))
+    k_means.fit(reduced_data)
+
+    colors = cm.rainbow(np.linspace(0, 1, n_clusters))
+    # list that stores each data-points cluster color
+    color_list = []
+    # get clusters for each data-point
+    cluster_for_each_data = k_means.predict(reduced_data)
+
+    # go through data - assign for each cluster a color value
+    for index, cluster_val in enumerate(cluster_for_each_data):
+
+        color_for_that_data_point = colors[cluster_val]
+        color_list.append(color_for_that_data_point)
+
+    # plot scatter diagram of data-points
+    # each with a different color depending on the cluster they belong to
+    for index, i in enumerate(list(reduced_data)):
+
+        plt.scatter(i[0], i[1], color=color_list[index], s=1)
+
+    # plt.plot(reduced_data[:, 0], reduced_data[:, 1], 'k.', markersize=2)
+    centroids = k_means.cluster_centers_
+    plt.scatter(centroids[:, 0], centroids[:, 1],
+                marker='o', s=25, linewidths=3,
+                color='k', zorder=10)
+    plt.title('K-means clustering on the digits dataset (PCA-reduced data)\n'
+              'Centroids are marked with a black dot')
+
+    plt.xticks(())
+    plt.yticks(())
     plt.show()
 
 
 def main(k1, k2):
 
     print_cluster_image(k1, 2)
-    accuracyOfClusters(k1, True)
+    accuracy_of_clusters(k1, True)
+    accuracy_of_clusters(k2, True)
     show_cluster_accuracy_diagram(k1, k2, 1)
     cluster_scatter_diagram(k1)
 
 
-main(10, 20)
+main(10, 50)
