@@ -7,6 +7,10 @@ There are 4 python files
         to run this please call the main() method
         the entire program is generic, can be run for any N value, and the user can enter their own puzzle for each N config
         as well as use test puzzles for N = 3 and N = 4 puzzles (8, 15 puzzles)
+        after user input or choosing the test puzzles, heuristics can be selected before the program is run
+            the two heuristic I have chosen to implement are:
+                Manhattan Heuristic
+                Euclidean_distance Heuristic
 
     - k_means_clustering.py
 
@@ -17,12 +21,13 @@ There are 4 python files
 
     - my_own_k_means_clustering.py (my own k-means implementation)
 
-        to run this please call the main((arr) data-set, (int) number of clusters) method
-        I have a method that loads the digits data-set and returns the correct data-set format
-        This variable is called "training" and my k-means clustering works for any value of k (number of clusters)
+        to run this please call the main((int) number of clusters) method
+        for example - main(10), will use 10 clusters as the cluster amount!
+        I am using the digits data set imported from the sk-learn data set library
 
     - pokemon_k_means_clustering.py
 
         to run this please call the main() method
-        this will display a scatter diagram of the clusters formed from the pokemon attack against defense
-
+        this will display a scatter diagram of 7 clusters formed from the pokemon attack against defense
+            each cluster will be labelled with a generation that occurs the most in that cluster
+            there are 7 clusters as there are 7 generations of pokemon
